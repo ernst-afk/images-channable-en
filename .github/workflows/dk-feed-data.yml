@@ -1,0 +1,31 @@
+name: BOXR DK feed-data (beelden + DKK-prijzen)
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # elke 3 uur
+  push:
+    paths: ["image-map-en.csv", "scripts/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/build_dk_feed_data.py
+      - name: Committen als er iets veranderd is
+        run: |
+          if git diff --quiet -- channable-image-swap-en.csv && git ls-files --error-unmatch channable-image-swap-en.csv >/dev/null 2>&1; then
+            echo "Geen wijzigingen."; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add channable-image-swap-en.csv
+          git commit -m "BOXR DK: feed-data bijgewerkt (DKK-prijzen)"
+          git push
